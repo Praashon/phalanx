@@ -1,0 +1,15 @@
+[package]
+name = "phalanx-vm"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "eBPF-style static bytecode safety verifier, 32-bit RISC register ISA, and zero-allocation gas-metered VM."
+
+[dev-dependencies]
+proptest.workspace = true
+criterion.workspace = true
+
+[[bench]]
+name = "vm_bench"
+harness = false
