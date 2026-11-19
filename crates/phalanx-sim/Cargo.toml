@@ -1,0 +1,19 @@
+[package]
+name = "phalanx-sim"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Deterministic Q16.16 fixed-point physics arena, spatial hashing, and self-contained binary replays."
+
+[dependencies]
+phalanx-vm.workspace = true
+
+[dev-dependencies]
+phalanx-lang.workspace = true
+proptest.workspace = true
+criterion.workspace = true
+
+[[bench]]
+name = "sim_bench"
+harness = false
