@@ -1,0 +1,86 @@
+// Tactical Vanguard: multi-state FSM switching between Hunt, Skirmish, Evade, and ZoneRetreat.
+
+const MODE_HUNT: i32 = 0;
+const MODE_SKIRMISH: i32 = 1;
+const MODE_EVADE: i32 = 2;
+const MODE_RETREAT: i32 = 3;
+
+state mode: i32 = 0;
+state last_hp: i32 = 100;
+state strafe: i32 = 1;
+
+fn tick() {
+    let hp = self_hp();
+    let energy = self_energy();
+    let tid = radar_nearest();
+    let bid = nearest_bullet();
+
+    // Update FSM state based on threat, damage taken, and safe-zone margin.
+    if zone_dist() > zone_radius() - 8.0 {
+        mode = MODE_RETREAT;
+    } else if bid >= 0 && bullet_dist(bid) < 11.5 {
+        mode = MODE_EVADE;
+    } else if hp < last_hp {
+        strafe = -strafe;
+        mode = MODE_EVADE;
+    } else if tid >= 0 && target_dist(tid) < 25.0 {
+        mode = MODE_SKIRMISH;
+    } else {
+        mode = MODE_HUNT;
+    }
+    last_hp = hp;
+
+    if tick_num() % 50 == 0 {
+        debug_log(mode, to_fix(hp));
+    }
+
+    if mode == MODE_RETREAT {
+        let _s = shield(false);
+        let ca = atan2(arena_height() / 2.0 - self_y(), arena_width() / 2.0 - self_x());
+        thrust(ca, 1.0);
+    } else if mode == MODE_EVADE {
+        if bid >= 0 {
+            let dodge = bullet_angle(bid) + HALF_PI * to_fix(strafe);
+            if !dash(dodge) {
+                let _s = shield(bullet_dist(bid) < 7.0);
+            } else {
+                let _s = shield(false);
+            }
+            thrust(dodge, 1.0);
+        } else {
+            let _s = shield(false);
+            thrust(self_heading() + HALF_PI * to_fix(strafe), 0.9);
+        }
+    } else if tid >= 0 {
+        let _s = shield(false);
+        let a = target_angle(tid);
+        let d = target_dist(tid);
+        if mode == MODE_HUNT {
+            thrust(a + 0.25 * to_fix(strafe), 0.95);
+        } else {
+            let orb = a + HALF_PI * to_fix(strafe);
+            let mut move_a = orb;
+            if d > 20.0 {
+                move_a = a + 0.55 * to_fix(strafe);
+            }
+            thrust(move_a, 0.85);
+        }
+    }
+
+    if tid >= 0 && energy >= 16 {
+        let d = target_dist(tid);
+        let mut speed = 2.30;
+        if d < 24.0 {
+            speed = 1.85;
+        }
+        let t = d / speed;
+        let px = target_x(tid) + target_vx(tid) * t;
+        let py = target_y(tid) + target_vy(tid) * t;
+        let aim = atan2(py - self_y(), px - self_x());
+        if d < 24.0 && energy >= 26 {
+            let _f = fire(aim, 2);
+        } else {
+            let _f = fire(aim, 1);
+        }
+    }
+}

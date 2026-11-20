@@ -1,0 +1,68 @@
+// Iron Berserker: aggressive pursuit, reactive close-range shielding, and heavy cannons.
+
+const CLOSE_RANGE: fix = 14.5;
+const HEAVY_SPEED: fix = 1.45;
+const MED_SPEED: fix = 1.85;
+
+state flank_sign: i32 = 1;
+
+fn tick() {
+    if tick_num() % 65 == 0 {
+        flank_sign = -flank_sign;
+    }
+
+    let bid = nearest_bullet();
+    let mut urgent_shield = false;
+    if bid >= 0 && bullet_dist(bid) < 10.5 {
+        urgent_shield = true;
+    }
+
+    let tid = radar_nearest();
+    if tid >= 0 {
+        let dist = target_dist(tid);
+        let bearing = target_angle(tid);
+        let enemy_hp = target_hp(tid);
+
+        // Close gap aggressively, weaving around pillars if blocked.
+        let mut charge = bearing;
+        if wall_dist(charge) < 5.5 {
+            charge += HALF_PI * to_fix(flank_sign);
+        } else if dist < 11.0 {
+            charge += to_fix(flank_sign) * 0.65;
+        }
+
+        if zone_dist() > zone_radius() - 6.0 {
+            let center_a = atan2(arena_height() / 2.0 - self_y(), arena_width() / 2.0 - self_x());
+            thrust(center_a, 1.0);
+        } else {
+            thrust(charge, 1.0);
+        }
+
+        // Dash onto weakened enemies to secure the kill.
+        if enemy_hp <= 40 && dist > 11.0 && dist < 28.0 && self_energy() >= 55 {
+            let _d = dash(bearing);
+        }
+
+        if urgent_shield || (self_hp() < 35 && dist < 16.0 && self_energy() >= 30) {
+            let _s = shield(true);
+        } else {
+            let _s = shield(false);
+        }
+
+        if dist < CLOSE_RANGE && self_energy() >= 30 {
+            let t = dist / HEAVY_SPEED;
+            let px = target_x(tid) + target_vx(tid) * t;
+            let py = target_y(tid) + target_vy(tid) * t;
+            let _f = fire(atan2(py - self_y(), px - self_x()), 3);
+        } else if dist < 38.0 && self_energy() >= 22 {
+            let t = dist / MED_SPEED;
+            let px = target_x(tid) + target_vx(tid) * t;
+            let py = target_y(tid) + target_vy(tid) * t;
+            let _f = fire(atan2(py - self_y(), px - self_x()), 2);
+        } else if self_energy() >= 45 {
+            let _f = fire(bearing, 1);
+        }
+    } else {
+        let _s = shield(false);
+    }
+}

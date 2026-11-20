@@ -1,0 +1,61 @@
+// Orbital Sentry: center control, LOS cone scanning, and energy-disciplined bursts.
+
+state orbit_dir: i32 = 1;
+state scan_phase: fix = 0.0;
+
+fn tick() {
+    scan_phase += 0.35;
+    let cx = arena_width() / 2.0;
+    let cy = arena_height() / 2.0;
+    let dx = self_x() - cx;
+    let dy = self_y() - cy;
+    let dist_center = sqrt(dx * dx + dy * dy);
+    let to_center = atan2(-dy, -dx);
+
+    // Hold a tactical mid-arena orbit to control sightlines and stay safe from the storm.
+    let mut move_a = to_center + HALF_PI * to_fix(orbit_dir);
+    if dist_center > 18.0 || zone_dist() > zone_radius() - 8.0 {
+        move_a = to_center;
+    } else if dist_center < 8.0 {
+        move_a = to_center + PI + 0.5 * to_fix(orbit_dir);
+    }
+
+    if wall_dist(move_a) < 6.0 {
+        orbit_dir = -orbit_dir;
+        move_a = to_center + HALF_PI * to_fix(orbit_dir);
+    }
+    thrust(move_a, 0.78);
+
+    // Shield briefly if a projectile is dangerously close.
+    let bid = nearest_bullet();
+    if bid >= 0 && bullet_dist(bid) < 7.5 && self_energy() >= 25 {
+        let _s = shield(true);
+    } else {
+        let _s = shield(false);
+    }
+
+    // Prefer targets with clear unobstructed line of sight.
+    let nearest = radar_nearest();
+    let mut aim_id = -1;
+    if nearest >= 0 {
+        let base_a = target_angle(nearest);
+        aim_id = scan_cone(base_a, 0.45, 70.0);
+    }
+    if aim_id < 0 {
+        aim_id = scan_cone(scan_phase, 1.2, 65.0);
+    }
+
+    if aim_id >= 0 {
+        let d = target_dist(aim_id);
+        let t = d / 1.85;
+        let px = target_x(aim_id) + target_vx(aim_id) * t;
+        let py = target_y(aim_id) + target_vy(aim_id) * t;
+        let aim = atan2(py - self_y(), px - self_x());
+
+        if d < 28.0 && self_energy() >= 24 {
+            let _f = fire(aim, 2);
+        } else if self_energy() >= 18 {
+            let _f = fire(aim, 1);
+        }
+    }
+}

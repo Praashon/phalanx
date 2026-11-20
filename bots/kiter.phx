@@ -1,0 +1,81 @@
+// Phantom Kiter: predictive lead-aiming, optimal range kiting, and bullet-dodge dashing.
+
+const PREFERRED_RANGE: fix = 22.0;
+const PROJ_SPEED_MED: fix = 1.85;
+const PROJ_SPEED_FAST: fix = 2.30;
+
+state strafe_dir: i32 = 1;
+
+fn lead_angle(tid: i32, proj_speed: fix) -> fix {
+    let sx = self_x();
+    let sy = self_y();
+    let dist = target_dist(tid);
+    let t = dist / proj_speed;
+    let px = target_x(tid) + target_vx(tid) * t;
+    let py = target_y(tid) + target_vy(tid) * t;
+    return atan2(py - sy, px - sx);
+}
+
+fn tick() {
+    let tick = tick_num();
+    if tick % 47 == 0 {
+        strafe_dir = -strafe_dir;
+    }
+
+    // Check incoming bullet threat first and dodge orthogonally.
+    let bid = nearest_bullet();
+    if bid >= 0 {
+        let bdist = bullet_dist(bid);
+        if bdist < 13.0 {
+            let bvx = bullet_vx(bid);
+            let bvy = bullet_vy(bid);
+            let dodge = atan2(bvy, bvx) + HALF_PI * to_fix(strafe_dir);
+            if !dash(dodge) {
+                let _s = shield(bdist < 6.0);
+            }
+            thrust(dodge, 1.0);
+        } else {
+            let _s = shield(false);
+        }
+    } else {
+        let _s = shield(false);
+    }
+
+    // Retreat smoothly if approaching shrinking storm boundary.
+    if zone_dist() > zone_radius() - 7.0 {
+        let to_center = atan2(arena_height() / 2.0 - self_y(), arena_width() / 2.0 - self_x());
+        thrust(to_center, 1.0);
+    } else {
+        let tid = radar_nearest();
+        if tid >= 0 {
+            let dist = target_dist(tid);
+            let bearing = target_angle(tid);
+            let mut move_angle = bearing + HALF_PI * to_fix(strafe_dir);
+
+            if dist > PREFERRED_RANGE + 5.0 {
+                move_angle = bearing + to_fix(strafe_dir) * 0.55;
+            } else if dist < PREFERRED_RANGE - 5.0 {
+                move_angle = bearing + PI - to_fix(strafe_dir) * 0.45;
+            }
+
+            if wall_dist(move_angle) < 7.0 {
+                strafe_dir = -strafe_dir;
+                move_angle = bearing + HALF_PI * to_fix(strafe_dir);
+            }
+            thrust(move_angle, 0.92);
+        }
+    }
+
+    // Predictive lead firing scaled by range & energy.
+    let tid = radar_nearest();
+    if tid >= 0 {
+        let dist = target_dist(tid);
+        if dist < 34.0 && self_energy() >= 24 {
+            let aim = lead_angle(tid, PROJ_SPEED_MED);
+            let _f = fire(aim, 2);
+        } else if self_energy() >= 15 {
+            let aim = lead_angle(tid, PROJ_SPEED_FAST);
+            let _f = fire(aim, 1);
+        }
+    }
+}

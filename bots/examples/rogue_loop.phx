@@ -1,0 +1,14 @@
+// Rogue Loop Example: demonstrates deterministic VM gas-budget containment.
+// Compiles & passes static verification cleanly, then suspends cleanly at
+// gas_budget without hanging or crashing the simulation engine.
+
+fn tick() {
+    let tid = radar_nearest();
+    if tid >= 0 {
+        let _f = fire(target_angle(tid), 1);
+    }
+    let mut spin = 0;
+    while true {
+        spin += 1;
+    }
+}

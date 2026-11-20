@@ -1,0 +1,70 @@
+// Evasive Ghost: high-mobility flanker with persistent threat memory array.
+
+state orbit_sign: i32 = 1;
+state prev_hp: i32 = 100;
+state rng_cooldown: i32 = 0;
+state angle_hist: [fix; 4];
+
+fn tick() {
+    let t = tick_num();
+    let hp = self_hp();
+    if hp < prev_hp {
+        orbit_sign = -orbit_sign;
+    }
+    prev_hp = hp;
+
+    if rng_cooldown > 0 {
+        rng_cooldown -= 1;
+    } else {
+        if rand_int(4) == 0 {
+            orbit_sign = -orbit_sign;
+        }
+        rng_cooldown = 25;
+    }
+
+    let bid = nearest_bullet();
+    if bid >= 0 && bullet_dist(bid) < 12.0 {
+        let perp = atan2(bullet_vy(bid), bullet_vx(bid)) + HALF_PI * to_fix(orbit_sign);
+        let _d = dash(perp);
+        thrust(perp, 1.0);
+    } else if zone_dist() > zone_radius() - 6.5 {
+        let ca = atan2(arena_height() / 2.0 - self_y(), arena_width() / 2.0 - self_x());
+        thrust(ca, 1.0);
+    } else {
+        let tid = radar_nearest();
+        if tid >= 0 {
+            let a = target_angle(tid);
+            let d = target_dist(tid);
+            let mut desired = a + HALF_PI * to_fix(orbit_sign);
+            if d > 25.0 {
+                desired = a + 0.65 * to_fix(orbit_sign);
+            } else if d < 14.0 {
+                desired = a + PI - 0.55 * to_fix(orbit_sign);
+            }
+            if wall_dist(desired) < 6.5 {
+                orbit_sign = -orbit_sign;
+                desired = a + HALF_PI * to_fix(orbit_sign);
+            }
+            thrust(desired, 0.96);
+        }
+    }
+
+    let _s = shield(false);
+
+    let tid = radar_nearest();
+    if tid >= 0 {
+        let d = target_dist(tid);
+        let a = target_angle(tid);
+        let slot = t % 4;
+        angle_hist[slot] = a;
+        let prev_a = angle_hist[(t + 3) % 4];
+        let angular_lead = angle_diff(a, prev_a) * 4.0;
+        let aim = a + clamp_fix(angular_lead, -0.35, 0.35);
+
+        if self_energy() >= 65 && d < 22.0 {
+            let _f = fire(aim, 2);
+        } else if self_energy() >= 14 {
+            let _f = fire(aim, 1);
+        }
+    }
+}
