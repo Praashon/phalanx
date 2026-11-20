@@ -1,0 +1,22 @@
+[package]
+name = "phalanx-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "CLI, interactive Ratatui arena visualizer, and step-through VM bytecode debugger for Phalanx."
+
+[[bin]]
+name = "phalanx"
+path = "src/main.rs"
+
+[dependencies]
+phalanx-vm.workspace = true
+phalanx-lang.workspace = true
+phalanx-sim.workspace = true
+phalanx-tourney.workspace = true
+clap.workspace = true
+ratatui.workspace = true
+crossterm.workspace = true
+serde.workspace = true
+serde_json.workspace = true

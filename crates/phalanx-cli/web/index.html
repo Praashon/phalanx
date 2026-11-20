@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>phalanx — Autonomous Bot VM &amp; Arena</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+  <div class="workbench">
+    <header class="topbar">
+      <div class="topbar-left">
+        <svg class="brand-mark" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <rect x="1.5" y="1.5" width="13" height="13" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M5 11V5h3.5a2 2 0 0 1 0 4H5" stroke="#38bdf8" stroke-width="1.4" stroke-linecap="square"/>
+        </svg>
+        <span class="brand-name">phalanx</span>
+        <span class="brand-ver">v0.1</span>
+      </div>
+
+      <nav class="nav-tabs" role="tablist">
+        <button class="nav-tab active" data-tab="arena" role="tab" aria-selected="true">Arena</button>
+        <button class="nav-tab" data-tab="editor" role="tab" aria-selected="false">Editor</button>
+        <button class="nav-tab" data-tab="benchmarks" role="tab" aria-selected="false">Benchmarks</button>
+      </nav>
+
+      <div class="topbar-right">
+        <span id="statusReadout" class="status-readout mono">initializing...</span>
+        <button id="btnShortcuts" class="btn-icon" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">?</button>
+      </div>
+    </header>
+
+    <!-- TAB 1: ARENA WORKBENCH -->
+    <main id="tab-arena" class="view active">
+      <div class="arena-split">
+        <section class="viewport-pane">
+          <div class="canvas-stage">
+            <canvas id="arenaCanvas"></canvas>
+            <div class="hud-tl mono" id="hudTelemetry">TICK 0000/0000 &middot; ZONE 58.3u &middot; 5 ALIVE</div>
+            <div class="hud-tr mono" id="hudStatus">READY</div>
+          </div>
+
+          <div class="transport-bar">
+            <div class="transport-controls">
+              <button id="btnPlayPause" class="btn-icon" title="Play / Pause (Space)" aria-label="Play or Pause">
+                <svg id="iconPlay" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:none"><path d="M4 2.5l9 5.5-9 5.5V2.5z"/></svg>
+                <svg id="iconPause" width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M4 3h3v10H4V3zm5 0h3v10H9V3z"/></svg>
+              </button>
+              <button id="btnStepBack" class="btn-icon" title="Step back 1 tick (Left Arrow)" aria-label="Step back">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M3 3h1.5v10H3V3zm9.5 0L5.5 8l7 5V3z"/></svg>
+              </button>
+              <button id="btnStepFwd" class="btn-icon" title="Step forward 1 tick (Right Arrow)" aria-label="Step forward">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.5 3H13v10h-1.5V3zM3.5 3l7 5-7 5V3z"/></svg>
+              </button>
+              <button id="btnReplayStart" class="btn-icon" title="Jump to tick 0 (Home)" aria-label="Jump to start">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2.5a5.5 5.5 0 1 0 5.3 7h-1.6A4 4 0 1 1 8 4V6l3-2.5L8 1v1.5z"/></svg>
+              </button>
+            </div>
+
+            <div class="segmented" id="speedGroup" role="group" aria-label="Playback speed">
+              <button class="seg-btn" data-speed="0.5">0.5&times;</button>
+              <button class="seg-btn active" data-speed="1">1&times;</button>
+              <button class="seg-btn" data-speed="2">2&times;</button>
+              <button class="seg-btn" data-speed="4">4&times;</button>
+            </div>
+
+            <div class="timeline-wrap" id="timelineTrack" title="Drag to scrub ticks">
+              <div class="timeline-rail">
+                <div class="timeline-fill" id="timelineFill"></div>
+                <div class="timeline-pips" id="timelinePips"></div>
+                <div class="timeline-thumb" id="timelineThumb"></div>
+              </div>
+            </div>
+            <span class="mono timeline-counter" id="timelineLabel">0 / 0</span>
+
+            <div class="seed-controls">
+              <span class="field-lbl">seed</span>
+              <input id="seedInput" class="input-compact mono" type="number" value="42" />
+              <button id="btnRunSeed" class="btn">Run</button>
+              <button id="btnRandomSeed" class="btn btn-solid">Random</button>
+            </div>
+          </div>
+        </section>
+
+        <aside class="inspector-pane">
+          <div class="pane-header">
+            <span>Telemetry</span>
+            <span id="gasCapLabel" class="muted mono">gas cap 2500</span>
+          </div>
+          <div id="rosterTable" class="roster-table"></div>
+
+          <div class="determinism-strip mono">
+            <button id="btnCopyHash" class="hash-copy" title="Click to copy state hash">
+              <span class="muted">HASH</span>
+              <span id="hashValue">0x0000000000000000</span>
+            </button>
+            <span id="verifyReadout" class="verify-ok">verified</span>
+          </div>
+
+          <div class="subtab-bar">
+            <button class="subtab active" data-sub="events">Events</button>
+            <button class="subtab" data-sub="vm">VM Inspector</button>
+          </div>
+
+          <div id="sub-events" class="subview active">
+            <div id="eventLog" class="event-log mono"></div>
+          </div>
+
+          <div id="sub-vm" class="subview">
+            <div class="vm-toolbar">
+              <span id="dbgTargetLabel" class="mono muted">No trace loaded</span>
+              <div class="vm-actions">
+                <button id="btnCaptureTrace" class="btn btn-solid">Capture Tick</button>
+                <button id="btnDbgPrev" class="btn" disabled>&larr;</button>
+                <button id="btnDbgNext" class="btn" disabled>&rarr;</button>
+              </div>
+            </div>
+            <div class="vm-step-bar">
+              <input id="dbgStepRange" type="range" min="0" max="0" value="0" disabled />
+              <span id="dbgStepMeta" class="mono muted">Pause or select tick &rarr; Capture Tick</span>
+            </div>
+            <div id="dbgDisasm" class="vm-asm mono"></div>
+            <div class="vm-regs-wrap">
+              <div class="vm-section-lbl">Registers r0..r15 <span class="muted">(hover for Q16.16)</span></div>
+              <div id="dbgRegs" class="vm-regs mono"></div>
+            </div>
+            <div id="dbgState" class="vm-state mono"></div>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <!-- TAB 2: EDITOR & STATIC VERIFIER -->
+    <main id="tab-editor" class="view">
+      <div class="sub-toolbar">
+        <div class="file-tabs" id="fileTabs"></div>
+        <div class="editor-actions">
+          <label class="field-lbl">name <input id="editorBotName" class="input-compact mono" type="text" value="kiter" /></label>
+          <label class="chk-inline"><input id="optToggle" type="checkbox" checked /> Optimize (-O1)</label>
+          <button id="btnVerifyCode" class="btn" title="Ctrl+Enter">Verify</button>
+          <button id="btnDeployArena" class="btn btn-solid">Deploy to Arena</button>
+        </div>
+      </div>
+
+      <div class="editor-split">
+        <section class="code-pane">
+          <div class="code-surface">
+            <div id="lineGutter" class="line-gutter mono" aria-hidden="true"></div>
+            <textarea id="codeInput" class="code-textarea mono" spellcheck="false" wrap="off"></textarea>
+          </div>
+          <footer class="editor-footer mono">
+            <span id="cursorPos">Ln 1, Col 1</span>
+            <span>UTF-8 &middot; .phx (Q16.16 fixed-point)</span>
+          </footer>
+        </section>
+
+        <section class="analysis-pane">
+          <div id="verifierPanel" class="verifier-panel">
+            <div class="verifier-head">
+              <span id="verifierStatus" class="verify-ok">Ready</span>
+              <span id="verifierMeta" class="mono muted"></span>
+            </div>
+            <div id="verifierDetails" class="verifier-details"></div>
+          </div>
+
+          <div class="subtab-bar">
+            <button class="subtab active" data-edsub="disasm">Disassembly</button>
+            <button class="subtab" data-edsub="ir">CFG IR</button>
+            <button class="subtab" data-edsub="syscalls">Syscalls (45)</button>
+          </div>
+
+          <div id="edsub-disasm" class="subview active">
+            <div id="disasmView" class="disasm-table mono"></div>
+          </div>
+          <div id="edsub-ir" class="subview">
+            <pre id="irView" class="ir-pre mono"></pre>
+          </div>
+          <div id="edsub-syscalls" class="subview">
+            <div class="syscall-filter-row">
+              <input id="syscallFilter" class="input-compact" type="search" placeholder="Filter syscalls (e.g. radar, fire, atan2)..." />
+            </div>
+            <div id="syscallTableWrap" class="syscall-wrap"></div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- TAB 3: BENCHMARKS & TOURNAMENT -->
+    <main id="tab-benchmarks" class="view">
+      <div class="sub-toolbar">
+        <div class="bench-controls">
+          <div class="segmented" id="tourneyFormatGroup">
+            <button class="seg-btn active" data-format="round-robin">Round-Robin 1v1</button>
+            <button class="seg-btn" data-format="royale">Battle Royale</button>
+          </div>
+          <label class="field-lbl">rounds
+            <select id="tourneyRounds" class="input-compact mono">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+            </select>
+          </label>
+          <label class="field-lbl">seed
+            <input id="tourneySeed" class="input-compact mono" type="number" value="1337" />
+          </label>
+          <label class="chk-inline"><input id="tourneyAudit" type="checkbox" checked /> Cross-thread determinism audit</label>
+        </div>
+        <button id="btnRunTourney" class="btn btn-solid">Run Benchmark</button>
+      </div>
+
+      <div class="telemetry-strip">
+        <div class="t-cell">
+          <div class="t-lbl">Throughput</div>
+          <div id="tMps" class="t-val mono">&mdash;</div>
+        </div>
+        <div class="t-cell">
+          <div class="t-lbl">VM Execution</div>
+          <div id="tMips" class="t-val mono">&mdash;</div>
+        </div>
+        <div class="t-cell">
+          <div class="t-lbl">Simulation Volume</div>
+          <div id="tVolume" class="t-val mono">&mdash;</div>
+        </div>
+        <div class="t-cell">
+          <div class="t-lbl">Determinism Audit</div>
+          <div id="tAudit" class="t-val mono">&mdash;</div>
+        </div>
+      </div>
+
+      <div class="bench-body">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Bot</th>
+                <th>Elo Rating</th>
+                <th>W-L-D</th>
+                <th>Win %</th>
+                <th>Kills</th>
+                <th>Damage</th>
+                <th>Gas / Tick</th>
+                <th>Avg Survival</th>
+                <th>Faults</th>
+              </tr>
+            </thead>
+            <tbody id="eloBody">
+              <tr><td colspan="10" class="muted empty-row">Click Run Benchmark to execute parallel matches across worker threads.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="history-pane">
+          <div class="pane-header"><span>Benchmark Run History</span></div>
+          <div id="tourneyHistory" class="history-list mono">
+            <div class="muted" style="padding:10px 12px;">No benchmark runs recorded in this session.</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- KEYBOARD SHORTCUTS DIALOG -->
+  <div id="shortcutsModal" class="modal-backdrop" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <span id="modalTitle">Keyboard Shortcuts</span>
+        <button id="btnCloseModal" class="btn-icon" aria-label="Close">&times;</button>
+      </div>
+      <div class="shortcut-list mono">
+        <div><span>Space</span><span>Play / Pause simulation</span></div>
+        <div><span>&larr; / &rarr;</span><span>Step backward / forward 1 tick</span></div>
+        <div><span>Home / End</span><span>Jump to tick 0 / end</span></div>
+        <div><span>1 / 2 / 3</span><span>Switch Arena / Editor / Benchmarks</span></div>
+        <div><span>Ctrl + Enter</span><span>Verify .phx code (in Editor)</span></div>
+        <div><span>?</span><span>Toggle this help dialog</span></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
