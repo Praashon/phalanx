@@ -360,7 +360,7 @@ fn sin_q16(angle: Fix) -> Fix {
 
 // Pure-integer atan(t) for 0 <= t <= ONE (Q16.16), using range reduction at tan(pi/8).
 fn atan_unit_q16(t: i64) -> i64 {
-    // tan(pi/8) ≈ 0.41421356 * 65536 = 27146
+    // tan(pi/8) ~ 0.41421356 * 65536 = 27146
     const TAN_PI_8: i64 = 27_146;
     const ONE: i64 = 65_536;
 

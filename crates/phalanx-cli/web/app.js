@@ -167,7 +167,7 @@
       ? `${data.frames.length - 1} ticks verified (${(data.replay_bytes / 1024).toFixed(1)} KB .phxr)`
       : 'hash mismatch';
     $('verifyReadout').className = data.determinism_verified ? 'verify-ok' : 'verify-err';
-    $('statusReadout').textContent = `seed ${seed} · ${data.determinism_verified ? 'verified' : 'unverified'}`;
+    $('statusReadout').textContent = `seed ${seed} | ${data.determinism_verified ? 'verified' : 'unverified'}`;
 
     buildKillPips();
     buildRosterRows();
@@ -268,7 +268,7 @@
     const maxIdx = m.frames.length - 1;
 
     const alive = f.bots.filter(b => b.alive).length;
-    $('hudTelemetry').textContent = `TICK ${String(f.t).padStart(4, '0')}/${String(maxIdx).padStart(4, '0')} · ZONE ${f.zr.toFixed(1)}u · ${alive} ALIVE`;
+    $('hudTelemetry').textContent = `TICK ${String(f.t).padStart(4, '0')}/${String(maxIdx).padStart(4, '0')} | ZONE ${f.zr.toFixed(1)}u | ${alive} ALIVE`;
     $('hudStatus').textContent = app.cursor >= maxIdx
       ? (m.winner ? `WINNER ${m.winner.toUpperCase()}` : 'DRAW')
       : (app.playing ? 'RUNNING' : 'PAUSED');
@@ -779,7 +779,7 @@
     range.value = app.dbgStep;
 
     $('dbgStepMeta').textContent =
-      `step ${app.dbgStep + 1}/${tr.steps.length} · pc=${step.pc} · ${step.status} · depth=${step.depth} · gas=${step.gas_used}/${step.gas_used + step.gas_rem}`;
+      `step ${app.dbgStep + 1}/${tr.steps.length} | pc=${step.pc} | ${step.status} | depth=${step.depth} | gas=${step.gas_used}/${step.gas_used + step.gas_rem}`;
 
     const asmEl = $('dbgDisasm');
     const winStart = Math.max(0, step.pc - 4);
@@ -879,7 +879,7 @@
       const r = res.report, o = res.opt_stats;
       $('verifierStatus').textContent = 'VERIFIED SAFE';
       $('verifierStatus').className = 'verify-ok';
-      $('verifierMeta').textContent = `${r.fingerprint} · ${res.bytecode_bytes} B .phxb (CRC32C)`;
+      $('verifierMeta').textContent = `${r.fingerprint} | ${res.bytecode_bytes} B .phxb (CRC32C)`;
       $('verifierDetails').innerHTML = `
         <div class="v-metrics">
           <div class="v-cell"><div class="v-k">Insns</div><div class="v-v">${r.instructions}</div></div>
@@ -889,7 +889,7 @@
           <div class="v-cell"><div class="v-k">Slots</div><div class="v-v">${r.state_slots}/64</div></div>
           <div class="v-cell"><div class="v-k">Arrays</div><div class="v-v">${r.state_arrays}/16</div></div>
         </div>
-        <div class="opt-line">opt(${opt ? '-O1' : '-O0'}): folded=${o.consts_folded} · alg=${o.algebraic_simplifications} · prop=${o.copies_propagated} · dce=${o.dead_insts_removed} · cfg_pruned=${o.dead_blocks_removed}</div>`;
+        <div class="opt-line">opt(${opt ? '-O1' : '-O0'}): folded=${o.consts_folded} | alg=${o.algebraic_simplifications} | prop=${o.copies_propagated} | dce=${o.dead_insts_removed} | cfg_pruned=${o.dead_blocks_removed}</div>`;
 
       renderDisasmTable(res.disasm);
       $('irView').textContent = res.ir_dump;

@@ -524,7 +524,7 @@ fn draw_telemetry(f: &mut Frame<'_>, app: &AppState, area: UiRect) {
             }
         };
         let hp_pct = ((bot.hp.max(0) as usize) * 10) / (MAX_HP as usize);
-        let hp_bar = format!("{}{}", "█".repeat(hp_pct), "░".repeat(10 - hp_pct));
+        let hp_bar = format!("{}{}", "#".repeat(hp_pct), "-".repeat(10 - hp_pct));
         lines.push(Line::from(vec![
             Span::styled(format!("{selected} "), Style::default().fg(Color::Yellow)),
             Span::styled(

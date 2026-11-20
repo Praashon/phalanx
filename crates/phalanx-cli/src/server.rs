@@ -116,16 +116,11 @@ pub fn start_server(host: &str, port: u16) -> Result<(), String> {
         .local_addr()
         .map_err(|e| format!("failed to inspect socket address: {e}"))?;
 
-    println!();
-    println!("==================================================================");
-    println!("  PHALANX STUDIO  -  Sandboxed Autonomous Bot Battle Arena");
-    println!("==================================================================");
+    println!("phalanx studio listening on http://{bound}");
     if port != 0 && bound.port() != port {
-        println!("  Note: port {port} was busy; switched automatically.");
+        println!("note: requested port {port} was busy; bound fallback port");
     }
-    println!("  Open in browser:   http://{bound}");
-    println!("  Press Ctrl+C to stop.");
-    println!();
+    println!("press Ctrl+C to stop");
 
     for stream_res in listener.incoming() {
         match stream_res {
@@ -715,8 +710,24 @@ fn handle_match(req: MatchReq) -> MatchResp {
         ..ArenaConfig::default()
     };
 
-    let (summary, replay, raw_frames) =
-        record_match(compiled, seed, config.clone()).expect("verified bots record cleanly");
+    let (summary, replay, raw_frames) = match record_match(compiled, seed, config.clone()) {
+        Ok(res) => res,
+        Err(err) => {
+            return MatchResp {
+                ok: false,
+                seed: None,
+                determinism_verified: None,
+                replay_bytes: None,
+                final_hash: None,
+                winner: None,
+                arena: None,
+                bot_summary: None,
+                frames: None,
+                error_bot: Some(format!("simulation error: {err}")),
+                diagnostics: None,
+            };
+        }
+    };
     let determinism_verified = verify_replay(&replay).is_ok();
     let replay_bytes = encode_replay(&replay).len();
 

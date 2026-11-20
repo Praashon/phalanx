@@ -1,7 +1,7 @@
 //! IR optimization passes: constant folding, algebraic identities, copy propagation,
 //! unreachable block pruning, and dead-code elimination.
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
 
 use phalanx_vm::ValType;
 
@@ -161,16 +161,16 @@ fn fold_and_simplify(func: &mut IrFn, stats: &mut OptStats) {
                     }
 
                     // Algebraic identities
-                    if let Some(simplified) = simplify_algebra(
+                    if let Some(simplified) = simplify_algebra(AlgebraCtx {
                         dst,
                         op,
                         lhs,
                         rhs,
-                        lc.map(|x| x.0),
-                        rc.map(|x| x.0),
+                        lc: lc.map(|x| x.0),
+                        rc: rc.map(|x| x.0),
                         operand_ty,
                         result_ty,
-                    ) {
+                    }) {
                         *inst = simplified;
                         stats.algebraic_simplifications += 1;
                     }
@@ -196,8 +196,7 @@ fn fold_and_simplify(func: &mut IrFn, stats: &mut OptStats) {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn simplify_algebra(
+struct AlgebraCtx {
     dst: VReg,
     op: BinaryOp,
     lhs: VReg,
@@ -206,7 +205,19 @@ fn simplify_algebra(
     rc: Option<i32>,
     operand_ty: ValType,
     result_ty: ValType,
-) -> Option<IrInst> {
+}
+
+fn simplify_algebra(ctx: AlgebraCtx) -> Option<IrInst> {
+    let AlgebraCtx {
+        dst,
+        op,
+        lhs,
+        rhs,
+        lc,
+        rc,
+        operand_ty,
+        result_ty,
+    } = ctx;
     let one = match operand_ty {
         ValType::Int => 1,
         ValType::Fix => 65536,
@@ -395,9 +406,6 @@ fn prune_unreachable_blocks(func: &mut IrFn, stats: &mut OptStats) {
         }
     }
     func.blocks = new_blocks;
-
-    // Normalize unreachable terminator edges just in case a block was left open.
-    let _ = HashSet::<usize>::new();
 }
 
 fn is_pure(inst: &IrInst) -> bool {

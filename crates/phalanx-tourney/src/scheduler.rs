@@ -109,11 +109,10 @@ pub fn run_tournament(entries: &[BotEntry], config: &TournamentConfig) -> Tourna
         TournamentFormat::RoundRobin1v1 => {
             for i in 0..entries.len() {
                 for j in (i + 1)..entries.len() {
-                    for r in 0..config.rounds {
+                    for _ in 0..config.rounds {
                         let seed = config.base_seed.wrapping_add(
                             (next_idx as u64 + 1).wrapping_mul(0x9E37_79B9_7F4A_7C15),
                         );
-                        let _ = r;
                         tasks.push(MatchTask {
                             match_idx: next_idx,
                             participants: vec![i, j],

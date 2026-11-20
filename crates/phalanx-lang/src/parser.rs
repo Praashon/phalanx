@@ -53,14 +53,6 @@ impl<'a> Parser<'a> {
         self.peek().map(|t| &t.kind)
     }
 
-    fn prev_span(&self) -> Span {
-        if self.pos > 0 {
-            self.tokens[self.pos - 1].span
-        } else {
-            Span::new(0, 0)
-        }
-    }
-
     fn eof_span(&self) -> Span {
         Span::new(self.source_len, self.source_len)
     }
@@ -535,13 +527,10 @@ impl<'a> Parser<'a> {
                     })
                 }
             }
-            _ => {
-                let _ = self.prev_span();
-                Err(Diagnostic::new(
-                    "unexpected token while parsing expression",
-                    tok.span,
-                ))
-            }
+            _ => Err(Diagnostic::new(
+                "unexpected token while parsing expression",
+                tok.span,
+            )),
         }
     }
 
