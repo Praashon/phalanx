@@ -1,0 +1,13 @@
+[package]
+name = "phalanx-tourney"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Parallel work-stealing match executor, Elo rating engine, and determinism verification suite."
+
+[dependencies]
+phalanx-vm.workspace = true
+phalanx-lang.workspace = true
+phalanx-sim.workspace = true
+serde.workspace = true
